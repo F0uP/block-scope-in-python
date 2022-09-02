@@ -9,9 +9,21 @@ class dictScope:
     def addFunctionOrGlobalVar(self, name : str, value):
         self.dict[name] = value
     
-    def addLocal(self, name : str, value, funcI : str, block : str = None):
+    def nameInUpperBlock(self, name, funcDict, block):
+        for i in range(1,int(block)):
+            try:
+                if name in funcDict[i]:
+                    return i
+            except:
+                return None
+        return None
+        
+    def addLocal(self, name : str, value, funcI : str, block : int = None):
         funcI = funcI + "Var"
         if block is None:
+            if name in self.dict:
+                self.dict[name] = value
+                return
             try:
                 tempData = self.dict[funcI]
                 tempData[name] = value
@@ -19,6 +31,16 @@ class dictScope:
             except:
                 self.dict[funcI] = {name : value}
         else:
+            x = self.nameInUpperBlock(name, self.dict[funcI], block)
+            if name in self.dict:
+                self.dict[name] = value
+                return
+            elif name in self.dict[funcI]:
+                self.dict[funcI][name] = value
+                return
+            elif x is not None:
+                self.dict[funcI][x][name] = value
+                return
             try:
                 tempDataFunction = self.dict[funcI]
                 try:
@@ -32,42 +54,29 @@ class dictScope:
                 self.dict[funcI] = {block : {name : value}}
             
     
-    def getValue(self, name : str, funcI : str = None, block : str = None):
-            if not funcI is None:
-                funcI = funcI + "Var"
-                if block is None:
-                    try:
-                        tempData = self.dict[funcI]
-                        try:
-                            return tempData[name]
-                        except:
-                            try:
-                                return self.dict[name]
-                            except:
-                                raise ValueError()
-                    except:
-                        raise ValueError("No Function found in scope or variable not found in function scope.")
-                else:
-                    try:
-                        tempDataFunction = self.dict[funcI]
-                        try:
-                            tempDataBlock = tempDataFunction[block]
-                            try:
-                                return tempDataBlock[name]
-                            except:
-                                try:
-                                    return tempDataFunction[name]
-                                except:
-                                    try:
-                                        return self.dict[name]
-                                    except:
-                                        raise ValueError("No Variable with this name found in scope")
-                        except:
-                            raise ValueError("No Block found")
-                    except:
-                        raise ValueError("No Function found")
+    def getValue(self, name : str, funcI : str = None, block : int = None):
+        if funcI is None:
+            if name in self.dict:
+                return self.dict[name]
             else:
-                try:
+                raise ValueError("Globally not found Variable " + name + ".")
+        else:
+            funcI = funcI + "Var"
+            if block is None:
+                if name in self.dict[funcI]:
+                    return self.dict[funcI][name]
+                elif name in self.dict:
                     return self.dict[name]
-                except:
-                    raise ValueError("No Variable found in scope.")
+                else:
+                    raise ValueError("Variable " + name + " not found global or in given Function.")
+            else:
+                x = self.nameInUpperBlock(name, self.dict[funcI], block)
+                if x is None:
+                    if name in self.dict[funcI]:
+                        return self.dict[funcI][name]
+                    elif name in self.dict:
+                        return self.dict[name]
+                    else:
+                        raise ValueError("Variable " + name + " not found global or in given Function.")
+                else:
+                    return self.dict[funcI][x][name]
